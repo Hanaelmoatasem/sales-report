@@ -6,6 +6,8 @@ const multer = require("multer");
 const cors = require("cors");
 
 const app = express();
+
+const PORT = process.env.PORT || 5000;
 const upload = multer({ dest: "uploads/" });
 app.use(cors());
 
@@ -83,5 +85,8 @@ app.post("/upload", upload.single("file"), (req, res) => {
     fs.unlinkSync(req.file.path); // Remove uploaded file after processing
     res.json(result);
 });
+app.get("/", (req, res) => {
+    res.send("Backend is running!");
+  });
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
