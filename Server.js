@@ -1,12 +1,10 @@
 const express = require("express");
 const xlsx = require("xlsx");
-const path = require("path");
-const fs = require("fs");
 const multer = require("multer");
 const cors = require("cors");
 
 const app = express();
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ storage: multer.memoryStorage() }); // Use memory storage
 app.use(cors());
 
 const databaseProducts = [
@@ -23,32 +21,32 @@ const databaseProducts = [
     "Heart Of Silcily Pack", "Heart Of Silcily Mitt", "Heart Of Silcily Apron", "Fati's Spirit Oven Mitt", "Fati's Spirit Apron", "Fati's Spirit Pack"
 ];
 
-const parseExcel = (filePath) => {
-    const workbook = xlsx.readFile(filePath);
+const parseExcel = (buffer) => {
+    const workbook = xlsx.read(buffer, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-    
+
     const timeGroups = [
         { range: "10-1", start: 10, end: 13 },
         { range: "2-4", start: 14, end: 16 },
         { range: "5-8", start: 17, end: 20 },
         { range: "9-12", start: 21, end: 24 }
     ];
-    
+
     const salesReport = {};
-    
-    for (let i = 6; i < data.length; i++) { // Start from row 7 (index 6 in zero-based array)
+
+    for (let i = 6; i < data.length; i++) {
         const row = data[i];
-        const productName = row[0]; // Column A
-        const saleHour = parseInt(row[2], 10); // Column C
-        const grossSales = parseFloat(row[3]) || 0; // Column D
-        const netQuantity = parseInt(row[11], 10) || 0; // Column L
-        
+        const productName = row[0];
+        const saleHour = parseInt(row[2], 10);
+        const grossSales = parseFloat(row[3]) || 0;
+        const netQuantity = parseInt(row[11], 10) || 0;
+
         if (productName && !isNaN(saleHour)) {
             if (!salesReport[productName]) {
                 salesReport[productName] = {};
             }
-            
+
             for (let group of timeGroups) {
                 if (saleHour >= group.start && saleHour <= group.end) {
                     if (!salesReport[productName][group.range]) {
@@ -60,8 +58,7 @@ const parseExcel = (filePath) => {
             }
         }
     }
-    
-    // Ensure all database products exist in the report with 0 values if missing
+
     databaseProducts.forEach(product => {
         if (!salesReport[product]) {
             salesReport[product] = {};
@@ -70,7 +67,7 @@ const parseExcel = (filePath) => {
             });
         }
     });
-    
+
     return { salesReport };
 };
 
@@ -79,14 +76,9 @@ app.post("/upload", upload.single("file"), (req, res) => {
         return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const result = parseExcel(req.file.path);
-    fs.unlinkSync(req.file.path); // Remove uploaded file after processing
+    const result = parseExcel(req.file.buffer); // Read from buffer instead of file path
     res.json(result);
 });
+//app.listen(5000, () => console.log("Server running on port 5000"));
 
-// Export as serverless function
-module.exports = (req, res) => {
-    app(req, res);
-};
-
-app.listen(5000, () => console.log("Server running on port 5000"));
+module.exports = app; // Correctly export Express app for Vercel
