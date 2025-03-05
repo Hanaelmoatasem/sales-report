@@ -78,10 +78,15 @@ app.post("/upload", upload.single("file"), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
     }
-    
+
     const result = parseExcel(req.file.path);
     fs.unlinkSync(req.file.path); // Remove uploaded file after processing
     res.json(result);
 });
+
+// Export as serverless function
+module.exports = (req, res) => {
+    app(req, res);
+};
 
 app.listen(5000, () => console.log("Server running on port 5000"));
