@@ -79,6 +79,8 @@ app.post("/upload", upload.single("file"), (req, res) => {
     const result = parseExcel(req.file.buffer); // Read from buffer instead of file path
     res.json(result);
 });
-//app.listen(5000, () => console.log("Server running on port 5000"));
-
+app.listen(5000, () => console.log("Server running on port 5000"));
+app.get("/", (req, res) => {
+    res.send("Server is working!");
+});
 module.exports = app; // Correctly export Express app for Vercel
